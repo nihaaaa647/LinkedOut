@@ -1,0 +1,68 @@
+<%- include('../partials/header') %>
+
+<a href="/internships">&larr; Back to browse</a>
+
+<div class="card">
+  <h2><%= internship.title %></h2>
+  <p class="muted"><%= internship.company %> · <%= internship.location %> <% if (internship.workMode) { %>· <%= internship.workMode %><% } %></p>
+  <p class="badge <%= internship.status %>"><%= internship.status %></p>
+  <p><%= internship.description %></p>
+  <p class="muted">Deadline: <%= new Date(internship.deadline).toLocaleString() %> <% if (internship.stipend) { %>· Stipend: ₹<%= internship.stipend %><% } %></p>
+
+  <% if (internship.eligibility) { %>
+    <p class="muted">
+      Eligibility:
+      <% if (internship.eligibility.branches && internship.eligibility.branches.length) { %>branches <%= internship.eligibility.branches.join(', ') %><% } %>
+      <% if (internship.eligibility.minCgpa) { %> · min CGPA <%= internship.eligibility.minCgpa %><% } %>
+      <% if (internship.eligibility.years && internship.eligibility.years.length) { %> · years <%= internship.eligibility.years.join(', ') %><% } %>
+    </p>
+  <% } %>
+
+  <% if (typeof internship.matchScore === "number") { %>
+    <div class="card" style="background:#0b1220;">
+      <span class="match-score"><%= internship.matchScore %>% match</span>
+      <p>
+        <% (internship.matchedSkills || []).forEach(function (s) { %><span class="skill-tag matched"><%= s %></span><% }) %>
+        <% (internship.missingSkills || []).forEach(function (s) { %><span class="skill-tag missing"><%= s %></span><% }) %>
+      </p>
+      <% if (internship.recommendedLearning && internship.recommendedLearning.length) { %>
+        <h4>Recommended learning for your skill gaps</h4>
+        <ul>
+          <% internship.recommendedLearning.forEach(function (rl) { %>
+            <li><strong><%= rl.skill %></strong>:
+              <% rl.resources.forEach(function (r, idx) { %><a href="<%= r.url %>" target="_blank" rel="noopener"><%= r.title %></a><%= idx < rl.resources.length - 1 ? ', ' : '' %><% }) %>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </div>
+  <% } %>
+
+  <% if (currentUser && currentUser.role === "user" && internship.status === "published") { %>
+    <div style="margin-top:1rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+      <form method="POST" action="/internships/<%= internship._id %>/apply"><button type="submit">Apply</button></form>
+      <form method="POST" action="/internships/<%= internship._id %>/save"><button class="secondary" type="submit">Save</button></form>
+      <form method="POST" action="/internships/<%= internship._id %>/unsave"><button class="secondary" type="submit">Unsave</button></form>
+    </div>
+    <details style="margin-top:1rem;">
+      <summary class="muted">Report this listing as suspicious</summary>
+      <form method="POST" action="/internships/<%= internship._id %>/report">
+        <label>Reason</label>
+        <select name="reason">
+          <option value="payment_request">Asks for payment / registration fee</option>
+          <option value="sensitive_info_request">Asks for bank details / Aadhaar / OTP upfront</option>
+          <option value="suspicious_contact">Only a personal WhatsApp/Telegram contact</option>
+          <option value="fake_company">Company doesn't seem to exist</option>
+          <option value="other">Other</option>
+        </select>
+        <label>Details (optional)</label>
+        <textarea name="description" rows="2"></textarea>
+        <button class="danger" type="submit">Submit report</button>
+      </form>
+    </details>
+  <% } else if (!currentUser) { %>
+    <p class="muted" style="margin-top:1rem;"><a href="/login">Log in</a> to see your match score and apply.</p>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') %>

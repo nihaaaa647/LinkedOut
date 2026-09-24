@@ -1,0 +1,37 @@
+<%- include('../partials/header') %>
+
+<h2>Browse Internships</h2>
+
+<form method="GET" action="/internships" class="card">
+  <div class="grid cols-2">
+    <div>
+      <label>Location contains</label>
+      <input type="text" name="location" value="<%= query.location || '' %>" />
+    </div>
+    <div>
+      <label>Work mode</label>
+      <select name="workMode">
+        <option value="">Any</option>
+        <option value="remote" <%= query.workMode === 'remote' ? 'selected' : '' %>>Remote</option>
+        <option value="hybrid" <%= query.workMode === 'hybrid' ? 'selected' : '' %>>Hybrid</option>
+        <option value="onsite" <%= query.workMode === 'onsite' ? 'selected' : '' %>>Onsite</option>
+      </select>
+    </div>
+  </div>
+  <button type="submit">Filter</button>
+</form>
+
+<div class="grid">
+  <% internships.forEach(function (i) { %>
+    <div class="card">
+      <h3><a href="/internships/<%= i._id %>"><%= i.title %></a></h3>
+      <p class="muted"><%= i.company %> · <%= i.location %> <% if (i.workMode) { %>· <%= i.workMode %><% } %></p>
+      <p><%= i.description.slice(0, 160) %><%= i.description.length > 160 ? '…' : '' %></p>
+      <p class="muted">Deadline: <%= new Date(i.deadline).toLocaleDateString() %> <% if (i.stipend) { %>· Stipend: ₹<%= i.stipend %><% } %></p>
+      <% (i.requiredSkills || []).forEach(function (s) { %><span class="skill-tag"><%= s %></span><% }) %>
+    </div>
+  <% }) %>
+  <% if (internships.length === 0) { %><p class="muted">No published internships match these filters.</p><% } %>
+</div>
+
+<%- include('../partials/footer') %>

@@ -415,6 +415,7 @@ Compound unique index on `(userId, internshipId)`.
 | PATCH | /api/users/me | User | Update profile fields (skills, branch, year, cgpa, location preference, certifications) |
 | POST | /api/users/me/resume | User | Upload resume; if one already exists, replaces it (re-upload); auto-suggests parsed skills |
 | DELETE | /api/users/me/resume | User | Remove current resume |
+| GET | /api/users/me/resume | User | Download own resume (authenticated, ownership-checked - never served from a static public directory) |
 | GET | /api/users/me/saved | User | List saved internships |
 
 `POST /api/users/me/resume` accepts `multipart/form-data`, one file field (`resume`), validated server-side for MIME type (`application/pdf`, `.doc`/`.docx`) and a max size (e.g. 2MB) before storage; rejects with `400` otherwise. On success it updates `resumeUrl`, `resumeOriginalName`, `resumeUploadedAt`, merges any newly parsed skills into `skills[]`, and returns the updated profile plus `addedSkills`.
@@ -451,6 +452,7 @@ Real-time delivery is a Socket.IO connection to the `/notifications` namespace (
 
 | Method | Path | Role | Description |
 | --- | --- | --- | --- |
+| GET | /api/admin/internships | Admin | List all listings regardless of status, filterable by `status`, paginated |
 | POST | /api/admin/internships | Admin | Create listing |
 | PATCH | /api/admin/internships/:id | Admin | Update listing |
 | PATCH | /api/admin/internships/:id/close | Admin | Close listing |
@@ -482,6 +484,9 @@ Real-time delivery is a Socket.IO connection to the `/notifications` namespace (
 | --- | --- | --- | --- |
 | GET | /api/admin/analytics/skill-gaps | Admin | Aggregate skill-gap ranking (top missing, demand vs. supply, trend) |
 | PATCH | /api/admin/users/:id/revoke-sessions | Admin | Bump a user's `tokenVersion`, invalidating their existing JWTs |
+| POST | /api/admin/jobs/scrape/run | Admin | Trigger the scrape job immediately instead of waiting for its cron window (demo/grading convenience) |
+| POST | /api/admin/jobs/notify/run | Admin | Trigger the deadline/match-alert notification job immediately |
+| POST | /api/admin/jobs/skill-gap-snapshot/run | Admin | Trigger the skill-gap snapshot rollup immediately |
 
 Every route above returns a consistent envelope (`{ success, data, message }` on 2xx; `{ success: false, message, errors? }` on 4xx/5xx) and the standard status codes: `200` OK, `201` Created, `400` validation error, `401` not authenticated, `403` wrong role/not owner, `404` not found, `409` duplicate application, `500` server error.
 

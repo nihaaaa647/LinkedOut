@@ -1,0 +1,2732 @@
+{
+  "info": {
+    "name": "Internship Opportunity Portal API",
+    "description": "Covers every endpoint in the PRD (Section 14) with at least one success (2xx) and one failure (4xx) case each, including duplicate application (409), unauthorized (401), and forbidden (403) scenarios.\n\nRun `npm run seed` against a fresh database before running this collection top-to-bottom - folders are ordered so the right session cookie (student vs admin) is active when each request needs it. Postman's cookie jar is shared per-domain, so re-running out of order (or re-running only part of the collection) may leave the wrong role's cookie active for a given request.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api"
+    },
+    {
+      "key": "studentEmail",
+      "value": "priya@college.edu"
+    },
+    {
+      "key": "studentPassword",
+      "value": "Passw0rd!123"
+    },
+    {
+      "key": "student2Email",
+      "value": "rahul@college.edu"
+    },
+    {
+      "key": "student2Password",
+      "value": "Passw0rd!123"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@college.edu"
+    },
+    {
+      "key": "adminPassword",
+      "value": "Passw0rd!123"
+    },
+    {
+      "key": "newInternshipId",
+      "value": ""
+    },
+    {
+      "key": "applyTestInternshipId",
+      "value": ""
+    },
+    {
+      "key": "applyTestDeadline",
+      "value": ""
+    },
+    {
+      "key": "pendingInternshipId",
+      "value": ""
+    },
+    {
+      "key": "applicationId",
+      "value": ""
+    },
+    {
+      "key": "otherApplicationId",
+      "value": ""
+    },
+    {
+      "key": "notificationId",
+      "value": ""
+    },
+    {
+      "key": "learningResourceId",
+      "value": ""
+    },
+    {
+      "key": "otherUserId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Health",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "1. Auth",
+      "item": [
+        {
+          "name": "Register - success (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Test User\",\n  \"email\": \"{{$randomEmail}}\",\n  \"password\": \"Passw0rd!123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });",
+                  "pm.test(\"role forced to user\", function () { pm.expect(pm.response.json().data.role).to.eql(\"user\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register - duplicate email (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Assumes the seed script has already created priya@college.edu.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Duplicate\",\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"Passw0rd!123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 409\", function () { pm.response.to.have.status(409); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register - spoofed role field rejected (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Business Rule 7: role is never client-settable; unknown fields fail schema validation.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Evil\",\n  \"email\": \"{{$randomEmail}}\",\n  \"password\": \"Passw0rd!123\",\n  \"role\": \"admin\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register - weak password rejected (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Weak\",\n  \"email\": \"{{$randomEmail}}\",\n  \"password\": \"short\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login as student - success (200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Sets the JWT httpOnly cookie for subsequent student-role requests in this collection run.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{studentPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - wrong password (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"wrong-password\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get current user - success (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });",
+                  "pm.test(\"returns student email\", function () { pm.expect(pm.response.json().data.email).to.eql(pm.collectionVariables.get(\"studentEmail\")); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "1b. Setup - Admin Creates a Dedicated Apply-Flow Test Listing",
+      "item": [
+        {
+          "name": "Login as admin (temporary, for setup)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create dedicated apply-flow test internship",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/internships",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "internships"
+              ]
+            },
+            "description": "Deadline is set ~36h out (a synchronous pre-request script, unlike the async pm.sendRequest issue above) so it falls inside the default 48h notification window once the notify job runs.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman Apply-Flow Test Internship\",\n  \"company\": \"Postman Test Co\",\n  \"description\": \"A freshly created listing used only by this collection's apply/withdraw/status tests, so it never collides with seeded applications.\",\n  \"eligibility\": {\n    \"branches\": [\n      \"Any\"\n    ],\n    \"minCgpa\": 0,\n    \"years\": [\n      1,\n      2,\n      3,\n      4\n    ]\n  },\n  \"location\": \"Remote\",\n  \"deadline\": \"{{applyTestDeadline}}\",\n  \"requiredSkills\": [\n    \"JavaScript\"\n  ],\n  \"workMode\": \"remote\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set(\"applyTestDeadline\", new Date(Date.now() + 36 * 60 * 60 * 1000).toISOString());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });",
+                  "pm.collectionVariables.set(\"applyTestInternshipId\", pm.response.json().data._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Re-login as student (back to student session for the rest of the flow)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{studentPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "2. Student - Profile & Resume",
+      "item": [
+        {
+          "name": "Update profile - success (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
+            },
+            "description": "Verifies skill-alias normalization (JS -> JavaScript, Node -> Node.js) from the seeded SkillSynonym data.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"branch\": \"CSE\",\n  \"year\": 3,\n  \"cgpa\": 8.6,\n  \"skills\": [\n    \"JS\",\n    \"React\",\n    \"Node\"\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });",
+                  "pm.test(\"skills normalized to canonical form\", function () { pm.expect(pm.response.json().data.skills).to.include(\"JavaScript\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update profile - invalid CGPA rejected (400)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cgpa\": 15\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Upload resume - non-PDF/DOC rejected (400)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/me/resume",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me",
+                "resume"
+              ]
+            },
+            "description": "In the Postman app, attach a .exe or .txt file to the 'resume' form field before sending to see the 400. Attach a real .pdf to the same field on a duplicated request to see the 200 + addedSkills success case.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "resume",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get saved internships - success (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/me/saved",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me",
+                "saved"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout (to test unauthenticated access)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "A real prior request rather than a pre-request-script side effect - pm.sendRequest() in a prerequest script isn't reliably awaited before the main request fires, so the logout needs to be its own sequenced step."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Resume upload - unauthenticated (401)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/me/resume",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me",
+                "resume"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "resume",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Re-login as student (housekeeping)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{studentPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "3. Student - Browse, Save, Report",
+      "item": [
+        {
+          "name": "List internships (public) - success (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/internships?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "internships?page=1&limit=20"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });",
+                  "if (pm.response.json().data.items.length > 0) { pm.collectionVariables.set(\"newInternshipId\", pm.response.json().data.items[0]._id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List internships - invalid limit rejected (400)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/internships?limit=9999",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "internships?limit=9999"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get internship detail (authenticated, with match score) - success (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/internships/{{newInternshipId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "internships",
+                "{{newInternshipId}}"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });",
+                  "pm.test(\"includes matchScore\", function () { pm.expect(pm.response.json().data).to.have.property(\"matchScore\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get internship detail - not found (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/internships/000000000000000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "internships",
+                "000000000000000000000000"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 404\", function () { pm.response.to.have.status(404); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Save internship - success (200)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/internships/{{newInternshipId}}/save",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "internships",
+                "{{newInternshipId}}",
+                "save"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unsave internship - success (200)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/internships/{{newInternshipId}}/save",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "internships",
+                "{{newInternshipId}}",
+                "save"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Report internship - success (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/internships/{{newInternshipId}}/report",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "internships",
+                "{{newInternshipId}}",
+                "report"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"other\",\n  \"description\": \"Testing the report flow from Postman.\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Report internship - duplicate report rejected (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/internships/{{newInternshipId}}/report",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "internships",
+                "{{newInternshipId}}",
+                "report"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"other\",\n  \"description\": \"Reporting again.\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 409\", function () { pm.response.to.have.status(409); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Report internship - invalid reason rejected (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/internships/{{newInternshipId}}/report",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "internships",
+                "{{newInternshipId}}",
+                "report"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"not_a_real_reason\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "4. Student - Applications",
+      "item": [
+        {
+          "name": "Apply to internship - success (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications"
+              ]
+            },
+            "description": "Uses the dedicated listing from folder 1b, not one of the seed script's internships (the seeded student already has applications on those).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"internshipId\": \"{{applyTestInternshipId}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });",
+                  "pm.collectionVariables.set(\"applicationId\", pm.response.json().data._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Apply again to same internship - duplicate (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications"
+              ]
+            },
+            "description": "Business Rule 2: only one non-Withdrawn application per (user, internship) pair, enforced by a DB partial unique index.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"internshipId\": \"{{applyTestInternshipId}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 409\", function () { pm.response.to.have.status(409); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get my applications - success (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/applications/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "me"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get single application - success (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get another user's application - not found (404)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/applications/000000000000000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "000000000000000000000000"
+              ]
+            },
+            "description": "404 (not 403) so existence of another user's resource isn't leaked (Section 15)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 404\", function () { pm.response.to.have.status(404); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout (to test unauthenticated access)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Apply - unauthenticated (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"internshipId\": \"{{applyTestInternshipId}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Re-login as student (housekeeping)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{studentPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Withdraw application - success (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}/withdraw",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}",
+                "withdraw"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });",
+                  "pm.test(\"status is Withdrawn\", function () { pm.expect(pm.response.json().data.status).to.eql(\"Withdrawn\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Withdraw again - invalid state (400)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/applications/{{applicationId}}/withdraw",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications",
+                "{{applicationId}}",
+                "withdraw"
+              ]
+            },
+            "description": "Business Rule 3: only Applied/Shortlisted applications can be withdrawn."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Re-apply after withdrawal - success (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "applications"
+              ]
+            },
+            "description": "Business Rule 2: re-applying after withdrawal is explicitly allowed.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"internshipId\": \"{{applyTestInternshipId}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });",
+                  "pm.collectionVariables.set(\"applicationId\", pm.response.json().data._id);"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "4b. Trigger Notify Job (temporary admin session)",
+      "item": [
+        {
+          "name": "Login as admin (temporary, to trigger the job)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Run notify job now",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/jobs/notify/run",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "jobs",
+                "notify",
+                "run"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Re-login as student (back to student session)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{studentPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "5. Student - Notifications",
+      "item": [
+        {
+          "name": "List notifications - success (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });",
+                  "pm.test(\"at least one deadline_reminder notification exists\", function () { pm.expect(pm.response.json().data.some(function (n) { return n.type === \"deadline_reminder\"; })).to.eql(true); });",
+                  "var target = pm.response.json().data.find(function (n) { return n.type === \"deadline_reminder\"; }); if (target) pm.collectionVariables.set(\"notificationId\", target._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mark notification as read - success (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/{{notificationId}}/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "{{notificationId}}",
+                "read"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Mark another user's notification as read - not found (404)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/000000000000000000000000/read",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notifications",
+                "000000000000000000000000",
+                "read"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 404\", function () { pm.response.to.have.status(404); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "6. Admin - Login",
+      "item": [
+        {
+          "name": "Login as admin - success (200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Switches the shared cookie jar to the admin session - every request below this point runs as admin.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });",
+                  "pm.test(\"role is admin\", function () { pm.expect(pm.response.json().data.role).to.eql(\"admin\"); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "7. Admin - Listings",
+      "item": [
+        {
+          "name": "Create internship - success (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/internships",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "internships"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman-created QA Intern\",\n  \"company\": \"Test Co\",\n  \"description\": \"Created via the Postman collection to exercise the admin create-listing flow end to end.\",\n  \"eligibility\": {\n    \"branches\": [\n      \"CSE\"\n    ],\n    \"minCgpa\": 6,\n    \"years\": [\n      3\n    ]\n  },\n  \"location\": \"Remote\",\n  \"deadline\": \"2027-01-01T00:00:00.000Z\",\n  \"requiredSkills\": [\n    \"JavaScript\"\n  ],\n  \"workMode\": \"remote\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create internship - validation error, missing fields (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/internships",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "internships"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Missing everything else\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update internship - success (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/internships/{{newInternshipId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "internships",
+                "{{newInternshipId}}"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stipend\": 20000\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Close internship - success (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/internships/{{newInternshipId}}/close",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "internships",
+                "{{newInternshipId}}",
+                "close"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });",
+                  "pm.test(\"status is closed\", function () { pm.expect(pm.response.json().data.status).to.eql(\"closed\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get pending review queue - success (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/internships/pending",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "internships",
+                "pending"
+              ]
+            },
+            "description": "Populated by the seed script's pending_review listing, or by running the scrape job / triggering 3 community reports."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });",
+                  "if (pm.response.json().data.length > 0) { pm.collectionVariables.set(\"pendingInternshipId\", pm.response.json().data[0]._id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Approve pending listing - success (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/internships/{{pendingInternshipId}}/approve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "internships",
+                "{{pendingInternshipId}}",
+                "approve"
+              ]
+            },
+            "description": "Skipped gracefully (404) if pendingInternshipId wasn't populated above.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eligibility\": {\n    \"branches\": [\n      \"Any\"\n    ],\n    \"minCgpa\": 0,\n    \"years\": [\n      2,\n      3,\n      4\n    ]\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reject pending listing - not found on already-decided id (404)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/internships/000000000000000000000000/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "internships",
+                "000000000000000000000000",
+                "reject"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 404\", function () { pm.response.to.have.status(404); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "8. Admin - Applications",
+      "item": [
+        {
+          "name": "List all applications - success (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/applications?page=1&limit=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "applications?page=1&limit=20"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter applications by status - success (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/applications?status=Applied",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "applications?status=Applied"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update application status - success (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/applications/{{applicationId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "applications",
+                "{{applicationId}}",
+                "status"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Shortlisted\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update application status - invalid status value (400)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/applications/{{applicationId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "applications",
+                "{{applicationId}}",
+                "status"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"NotARealStatus\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "9. Admin - Trust Score & Learning Resources",
+      "item": [
+        {
+          "name": "Get trust score config - success (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/trust-score-config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "trust-score-config"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update trust score config - success (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/trust-score-config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "trust-score-config"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reportThreshold\": 4\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update trust score config - invalid weight (400)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/trust-score-config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "trust-score-config"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"weights\": {\n    \"sourceDomainReputation\": \"not-a-number\"\n  }\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () { pm.response.to.have.status(400); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List learning resources - success (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/learning-resources",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "learning-resources"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create learning resource mapping - success (201)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/learning-resources",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "learning-resources"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skill\": \"Kubernetes\",\n  \"resources\": [\n    {\n      \"title\": \"Kubernetes Basics\",\n      \"url\": \"https://kubernetes.io/docs/tutorials/kubernetes-basics/\",\n      \"type\": \"course\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", function () { pm.response.to.have.status(201); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });",
+                  "pm.collectionVariables.set(\"learningResourceId\", pm.response.json().data._id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create learning resource mapping - duplicate skill (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/learning-resources",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "learning-resources"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skill\": \"Kubernetes\",\n  \"resources\": [\n    {\n      \"title\": \"Another one\",\n      \"url\": \"https://example.com\",\n      \"type\": \"article\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 409\", function () { pm.response.to.have.status(409); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update learning resource mapping - success (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/learning-resources/{{learningResourceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "learning-resources",
+                "{{learningResourceId}}"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resources\": [\n    {\n      \"title\": \"Kubernetes Basics (updated)\",\n      \"url\": \"https://kubernetes.io/docs/tutorials/kubernetes-basics/\",\n      \"type\": \"course\"\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete learning resource mapping - success (200)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/learning-resources/{{learningResourceId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "learning-resources",
+                "{{learningResourceId}}"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "10. Admin - Analytics & Users",
+      "item": [
+        {
+          "name": "Get skill-gap analytics - success (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/analytics/skill-gaps",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "analytics",
+                "skill-gaps"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get skill-gap analytics filtered by branch - success (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/analytics/skill-gaps?branch=CSE",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "analytics",
+                "skill-gaps?branch=CSE"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "11. Cross-Role & RBAC Negative Tests",
+      "item": [
+        {
+          "name": "Re-login as student (for RBAC negative tests)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{studentEmail}}\",\n  \"password\": \"{{studentPassword}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Student blocked from admin create-listing (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/internships",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "internships"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Should be blocked\",\n  \"company\": \"N/A\",\n  \"description\": \"N/A\",\n  \"eligibility\": {\n    \"branches\": [],\n    \"minCgpa\": 0,\n    \"years\": []\n  },\n  \"location\": \"N/A\",\n  \"deadline\": \"2027-01-01T00:00:00.000Z\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Student blocked from admin applications list (403)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "applications"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Student blocked from trust-score config (403)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/trust-score-config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "trust-score-config"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 403\", function () { pm.response.to.have.status(403); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout (clears session)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"success is true\", function () { pm.expect(pm.response.json().success).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unauthenticated access to /auth/me (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unauthenticated access to admin route (401, not 403)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/applications",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "applications"
+              ]
+            },
+            "description": "401 (missing/invalid credentials) takes precedence over 403 (wrong role) when there's no session at all."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", function () { pm.response.to.have.status(401); });",
+                  "pm.test(\"success is false\", function () { pm.expect(pm.response.json().success).to.eql(false); });"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "description": ""
+    }
+  ]
+}

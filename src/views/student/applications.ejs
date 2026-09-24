@@ -1,0 +1,25 @@
+<%- include('../partials/header') %>
+
+<h2>My Applications</h2>
+
+<table>
+  <thead><tr><th>Internship</th><th>Company</th><th>Status</th><th>Applied</th><th></th></tr></thead>
+  <tbody>
+    <% applications.forEach(function (a) { %>
+      <tr>
+        <td><% if (a.internshipId) { %><a href="/internships/<%= a.internshipId._id %>"><%= a.internshipId.title %></a><% } else { %>(listing removed)<% } %></td>
+        <td><%= a.internshipId ? a.internshipId.company : '' %></td>
+        <td><span class="badge <%= a.status.toLowerCase() %>"><%= a.status %></span></td>
+        <td class="muted"><%= new Date(a.appliedAt).toLocaleDateString() %></td>
+        <td>
+          <% if (['Applied', 'Shortlisted'].includes(a.status)) { %>
+            <form method="POST" action="/applications/<%= a._id %>/withdraw"><button class="secondary" type="submit">Withdraw</button></form>
+          <% } %>
+        </td>
+      </tr>
+    <% }) %>
+    <% if (applications.length === 0) { %><tr><td colspan="5" class="muted">No applications yet.</td></tr><% } %>
+  </tbody>
+</table>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,27 @@
+<%- include('../partials/header') %>
+
+<h2>Skill-Gap Analytics</h2>
+<p class="muted">Demand (required by active listings) vs. supply (students who already have it) vs. how many otherwise-well-matched students are missing it.</p>
+
+<form method="GET" action="/admin/analytics" class="card">
+  <label>Branch filter</label>
+  <input type="text" name="branch" value="<%= query.branch || '' %>" placeholder="CSE" />
+  <button type="submit">Filter</button>
+</form>
+
+<table>
+  <thead><tr><th>Skill</th><th>Demand</th><th>Supply</th><th>Missing for eligible students</th></tr></thead>
+  <tbody>
+    <% rows.forEach(function (r) { %>
+      <tr>
+        <td><%= r.skill %></td>
+        <td><%= r.demandCount %></td>
+        <td><%= r.supplyCount %></td>
+        <td><strong><%= r.missingForEligibleCount %></strong></td>
+      </tr>
+    <% }) %>
+    <% if (rows.length === 0) { %><tr><td colspan="4" class="muted">No data yet - run the skill-gap snapshot job or add listings/students.</td></tr><% } %>
+  </tbody>
+</table>
+
+<%- include('../partials/footer') %>

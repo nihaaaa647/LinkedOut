@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= typeof title !== "undefined" ? title : "Internship Portal" %></title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+<nav>
+  <a class="brand" href="/internships">Internship Portal</a>
+  <% if (currentUser) { %>
+    <a href="/internships">Browse</a>
+    <% if (currentUser.role === "user") { %>
+      <a href="/applications">My Applications</a>
+      <a href="/profile">Profile</a>
+      <a href="/notifications">Notifications</a>
+    <% } else { %>
+      <a href="/admin/internships">Manage Listings</a>
+      <a href="/admin/internships/pending">Review Queue</a>
+      <a href="/admin/applications">Applications</a>
+      <a href="/admin/analytics">Skill-Gap Analytics</a>
+    <% } %>
+    <span class="role-badge"><%= currentUser.role %></span>
+    <span class="muted"><%= currentUser.name %></span>
+    <form class="inline" method="POST" action="/logout"><button class="secondary" type="submit">Logout</button></form>
+  <% } else { %>
+    <a href="/internships">Browse</a>
+    <a href="/login">Login</a>
+    <a href="/register">Register</a>
+  <% } %>
+</nav>
+<main>
+<% if (typeof flashError !== "undefined" && flashError) { %><div class="flash error"><%= flashError %></div><% } %>
+<% if (typeof flashSuccess !== "undefined" && flashSuccess) { %><div class="flash success"><%= flashSuccess %></div><% } %>
