@@ -1,27 +1,33 @@
 <%- include('../partials/header') %>
 
-<h2>Skill-Gap Analytics</h2>
-<p class="muted">Demand (required by active listings) vs. supply (students who already have it) vs. how many otherwise-well-matched students are missing it.</p>
+<div class="page-header">
+  <h1>Skill-gap analytics</h1>
+  <p class="subtitle">Demand across active listings vs. supply across students, and what's blocking otherwise-eligible applicants.</p>
+</div>
 
-<form method="GET" action="/admin/analytics" class="card">
-  <label>Branch filter</label>
-  <input type="text" name="branch" value="<%= query.branch || '' %>" placeholder="CSE" />
+<form method="GET" action="/admin/analytics" class="panel" style="display:flex; align-items:flex-end; gap:1rem;">
+  <div style="min-width:200px;">
+    <label>Branch</label>
+    <input type="text" name="branch" value="<%= query.branch || '' %>" placeholder="CSE" style="margin-bottom:0;" />
+  </div>
   <button type="submit">Filter</button>
 </form>
 
-<table>
-  <thead><tr><th>Skill</th><th>Demand</th><th>Supply</th><th>Missing for eligible students</th></tr></thead>
-  <tbody>
-    <% rows.forEach(function (r) { %>
-      <tr>
-        <td><%= r.skill %></td>
-        <td><%= r.demandCount %></td>
-        <td><%= r.supplyCount %></td>
-        <td><strong><%= r.missingForEligibleCount %></strong></td>
-      </tr>
-    <% }) %>
-    <% if (rows.length === 0) { %><tr><td colspan="4" class="muted">No data yet - run the skill-gap snapshot job or add listings/students.</td></tr><% } %>
-  </tbody>
-</table>
+<div class="panel" style="padding:0.5rem 1.4rem 1rem;">
+  <table>
+    <thead><tr><th>Skill</th><th style="text-align:right;">Demand</th><th style="text-align:right;">Supply</th><th style="text-align:right;">Missing for eligible students</th></tr></thead>
+    <tbody>
+      <% rows.forEach(function (r) { %>
+        <tr>
+          <td><%= r.skill %></td>
+          <td class="numeric muted"><%= r.demandCount %></td>
+          <td class="numeric muted"><%= r.supplyCount %></td>
+          <td class="numeric" style="font-weight:600;"><%= r.missingForEligibleCount %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% if (rows.length === 0) { %><div class="empty-state">No data yet — run the skill-gap snapshot job, or add listings/students.</div><% } %>
+</div>
 
 <%- include('../partials/footer') %>

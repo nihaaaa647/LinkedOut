@@ -1,26 +1,32 @@
 <%- include('../partials/header') %>
 
-<h2>Review Queue</h2>
-<p class="muted">Scraped listings routed here by the trust score, a low-confidence eligibility parse, or community reports.</p>
+<div class="page-header">
+  <h1>Review queue</h1>
+  <p class="subtitle">Routed here by the trust score, a low-confidence eligibility parse, or community reports.</p>
+</div>
 
-<div class="grid">
+<div class="panel" style="padding:0.5rem 1.4rem 1rem;">
   <% pending.forEach(function (i) { %>
-    <div class="card">
-      <h3><%= i.title %> <span class="muted">— <%= i.company %></span></h3>
-      <p class="muted"><%= i.location %> · deadline <%= new Date(i.deadline).toLocaleDateString() %></p>
-      <p><%= i.description %></p>
-      <p>
-        <span class="badge <%= i.trustScore >= 70 ? 'success' : i.trustScore >= 40 ? 'warning' : 'danger' %>">trustScore: <%= i.trustScore %></span>
-        <% if (i.eligibilityConfident === false) { %><span class="badge danger">low-confidence eligibility</span><% } %>
-        <% if (i.reportReasons && i.reportReasons.length) { %><span class="badge danger"><%= i.reportReasons.length %> report(s): <%= i.reportReasons.join(', ') %></span><% } %>
-      </p>
-      <div style="display:flex; gap:0.5rem;">
+    <div class="listing-row">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap;">
+        <div>
+          <h3><%= i.title %></h3>
+          <div class="meta"><%= i.company %> &middot; <%= i.location %> &middot; deadline <%= new Date(i.deadline).toLocaleDateString() %></div>
+        </div>
+        <span class="status <%= i.trustScore >= 70 ? 'success' : i.trustScore >= 40 ? 'warning' : 'danger' %>">trust score <%= i.trustScore %></span>
+      </div>
+      <p class="excerpt"><%- linkify(i.description) %></p>
+      <div style="margin-bottom:0.6rem;">
+        <% if (i.eligibilityConfident === false) { %><span class="status danger">low-confidence eligibility</span> <% } %>
+        <% if (i.reportReasons && i.reportReasons.length) { %><span class="status danger"><%= i.reportReasons.length %> report(s): <%= i.reportReasons.join(', ') %></span><% } %>
+      </div>
+      <div style="display:flex; gap:0.6rem;">
         <form method="POST" action="/admin/internships/<%= i._id %>/approve"><button type="submit">Approve</button></form>
         <form method="POST" action="/admin/internships/<%= i._id %>/reject"><button class="danger" type="submit">Reject</button></form>
       </div>
     </div>
   <% }) %>
-  <% if (pending.length === 0) { %><p class="muted">Nothing pending review right now.</p><% } %>
+  <% if (pending.length === 0) { %><div class="empty-state">Nothing pending review right now.</div><% } %>
 </div>
 
 <%- include('../partials/footer') %>

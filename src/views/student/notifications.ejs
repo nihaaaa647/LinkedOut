@@ -1,24 +1,31 @@
 <%- include('../partials/header') %>
 
-<h2>Notifications</h2>
+<div class="page-header">
+  <h1>Notifications</h1>
+  <p class="subtitle">Deadline reminders and high-match alerts for saved internships.</p>
+</div>
 
-<div class="grid">
+<div class="panel" style="padding:0.5rem 1.4rem 1rem;">
   <% notifications.forEach(function (n) { %>
-    <div class="card" style="<%= n.read ? 'opacity:0.6;' : '' %>">
-      <span class="badge <%= n.type === 'match_alert' ? 'success' : 'warning' %>"><%= n.type === 'match_alert' ? 'Match alert' : 'Deadline reminder' %></span>
-      <p>
-        <% if (n.internshipId) { %>
-          <a href="/internships/<%= n.internshipId._id %>"><%= n.internshipId.title %></a> at <%= n.internshipId.company %>
-          <% if (n.internshipId.deadline) { %> — deadline <%= new Date(n.internshipId.deadline).toLocaleString() %><% } %>
-        <% } else { %>(listing removed)<% } %>
-      </p>
-      <p class="muted"><%= new Date(n.createdAt).toLocaleString() %></p>
-      <% if (!n.read) { %>
-        <form method="POST" action="/notifications/<%= n._id %>/read"><button class="secondary" type="submit">Mark as read</button></form>
-      <% } %>
+    <div class="listing-row" style="<%= n.read ? 'opacity:0.55;' : '' %>">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem;">
+        <div>
+          <span class="status <%= n.type === 'match_alert' ? 'success' : 'warning' %>"><%= n.type === 'match_alert' ? 'Match alert' : 'Deadline reminder' %></span>
+          <p style="margin-top:0.5rem; margin-bottom:0.15rem;">
+            <% if (n.internshipId) { %>
+              <a href="/internships/<%= n.internshipId._id %>"><%= n.internshipId.title %></a> at <%= n.internshipId.company %>
+              <% if (n.internshipId.deadline) { %><span class="muted"> — deadline <%= new Date(n.internshipId.deadline).toLocaleString() %></span><% } %>
+            <% } else { %><span class="muted">Listing removed</span><% } %>
+          </p>
+          <p class="muted" style="margin-bottom:0;"><%= new Date(n.createdAt).toLocaleString() %></p>
+        </div>
+        <% if (!n.read) { %>
+          <form method="POST" action="/notifications/<%= n._id %>/read"><button class="text" type="submit">Mark as read</button></form>
+        <% } %>
+      </div>
     </div>
   <% }) %>
-  <% if (notifications.length === 0) { %><p class="muted">No notifications yet.</p><% } %>
+  <% if (notifications.length === 0) { %><div class="empty-state">No notifications yet.</div><% } %>
 </div>
 
 <%- include('../partials/footer') %>

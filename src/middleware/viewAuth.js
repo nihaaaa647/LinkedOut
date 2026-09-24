@@ -1,12 +1,15 @@
 const { createApiClient } = require("../config/apiClient");
+const { linkify } = require("../utils/linkify");
 
 // Populates res.locals.currentUser (used by every EJS view's nav) by calling the real
 // GET /auth/me endpoint through the same API client the page handlers use - the
 // frontend never bypasses the REST API, even to read "who's logged in".
 async function attachViewUser(req, res, next) {
   res.locals.currentUser = null;
+  res.locals.currentPath = req.path;
   res.locals.flashError = req.query.error || null;
   res.locals.flashSuccess = req.query.success || null;
+  res.locals.linkify = linkify;
 
   if (!req.cookies?.token) return next();
 

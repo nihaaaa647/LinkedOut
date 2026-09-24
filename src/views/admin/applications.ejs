@@ -1,42 +1,49 @@
 <%- include('../partials/header') %>
 
-<h2>All Applications</h2>
+<div class="page-header">
+  <h1>All applications</h1>
+  <p class="subtitle">Review and update status across every student.</p>
+</div>
 
-<form method="GET" action="/admin/applications" class="card">
-  <label>Filter by status</label>
-  <select name="status" class="auto-submit">
-    <option value="">All</option>
-    <% ["Applied", "Shortlisted", "Rejected", "Selected", "Withdrawn"].forEach(function (s) { %>
-      <option value="<%= s %>" <%= query.status === s ? 'selected' : '' %>><%= s %></option>
-    <% }) %>
-  </select>
+<form method="GET" action="/admin/applications" class="panel" style="display:flex; align-items:flex-end; gap:1rem;">
+  <div style="min-width:200px;">
+    <label>Filter by status</label>
+    <select name="status" class="auto-submit" style="margin-bottom:0;">
+      <option value="">All</option>
+      <% ["Applied", "Shortlisted", "Rejected", "Selected", "Withdrawn"].forEach(function (s) { %>
+        <option value="<%= s %>" <%= query.status === s ? 'selected' : '' %>><%= s %></option>
+      <% }) %>
+    </select>
+  </div>
 </form>
 
-<table>
-  <thead><tr><th>Student</th><th>Internship</th><th>Status</th><th>Applied</th><th>Update status</th></tr></thead>
-  <tbody>
-    <% applications.forEach(function (a) { %>
-      <tr>
-        <td><%= a.userId ? a.userId.name + ' (' + a.userId.email + ')' : '' %></td>
-        <td><%= a.internshipId ? a.internshipId.title : '' %></td>
-        <td><span class="badge <%= a.status.toLowerCase() %>"><%= a.status %></span></td>
-        <td class="muted"><%= new Date(a.appliedAt).toLocaleDateString() %></td>
-        <td>
-          <% if (!["Rejected", "Selected", "Withdrawn"].includes(a.status)) { %>
-            <form class="inline" method="POST" action="/admin/applications/<%= a._id %>/status">
-              <select name="status" class="auto-submit" style="width:auto; display:inline-block; margin:0;">
-                <option value="">Change to…</option>
-                <option value="Shortlisted">Shortlisted</option>
-                <option value="Rejected">Rejected</option>
-                <option value="Selected">Selected</option>
-              </select>
-            </form>
-          <% } %>
-        </td>
-      </tr>
-    <% }) %>
-    <% if (applications.length === 0) { %><tr><td colspan="5" class="muted">No applications match this filter.</td></tr><% } %>
-  </tbody>
-</table>
+<div class="panel" style="padding:0.5rem 1.4rem 1rem;">
+  <table>
+    <thead><tr><th>Student</th><th>Internship</th><th>Status</th><th>Applied</th><th>Update status</th></tr></thead>
+    <tbody>
+      <% applications.forEach(function (a) { %>
+        <tr>
+          <td><%= a.userId ? a.userId.name : '' %><br /><span class="muted"><%= a.userId ? a.userId.email : '' %></span></td>
+          <td><%= a.internshipId ? a.internshipId.title : '' %></td>
+          <td><span class="status <%= a.status.toLowerCase() %>"><%= a.status %></span></td>
+          <td class="muted"><%= new Date(a.appliedAt).toLocaleDateString() %></td>
+          <td>
+            <% if (!["Rejected", "Selected", "Withdrawn"].includes(a.status)) { %>
+              <form class="inline" method="POST" action="/admin/applications/<%= a._id %>/status">
+                <select name="status" class="auto-submit inline-select">
+                  <option value="">Change to…</option>
+                  <option value="Shortlisted">Shortlisted</option>
+                  <option value="Rejected">Rejected</option>
+                  <option value="Selected">Selected</option>
+                </select>
+              </form>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% if (applications.length === 0) { %><div class="empty-state">No applications match this filter.</div><% } %>
+</div>
 
 <%- include('../partials/footer') %>

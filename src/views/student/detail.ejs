@@ -1,35 +1,45 @@
 <%- include('../partials/header') %>
 
-<a href="/internships">&larr; Back to browse</a>
+<a href="/internships" class="muted">&larr; Back to browse</a>
 
-<div class="card">
-  <h2><%= internship.title %></h2>
-  <p class="muted"><%= internship.company %> · <%= internship.location %> <% if (internship.workMode) { %>· <%= internship.workMode %><% } %></p>
-  <p class="badge <%= internship.status %>"><%= internship.status %></p>
-  <p><%= internship.description %></p>
-  <p class="muted">Deadline: <%= new Date(internship.deadline).toLocaleString() %> <% if (internship.stipend) { %>· Stipend: ₹<%= internship.stipend %><% } %></p>
+<div class="panel" style="margin-top:1rem;">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap;">
+    <div>
+      <h1 style="margin-bottom:0.15rem;"><%= internship.title %></h1>
+      <p class="muted" style="margin-bottom:0;"><%= internship.company %> &middot; <%= internship.location %><% if (internship.workMode) { %> &middot; <%= internship.workMode %><% } %></p>
+    </div>
+    <span class="status <%= internship.status %>"><%= internship.status.replace('_', ' ') %></span>
+  </div>
 
-  <% if (internship.eligibility) { %>
-    <p class="muted">
+  <p style="margin-top:1.1rem;"><%- linkify(internship.description) %></p>
+
+  <div class="facts muted" style="font-size:0.85rem;">
+    Deadline <%= new Date(internship.deadline).toLocaleString() %>
+    <% if (internship.stipend) { %> &middot; ₹<%= internship.stipend.toLocaleString('en-IN') %>/mo<% } %>
+  </div>
+
+  <% if (internship.eligibility && ((internship.eligibility.branches && internship.eligibility.branches.length) || internship.eligibility.minCgpa || (internship.eligibility.years && internship.eligibility.years.length))) { %>
+    <p class="muted" style="font-size:0.85rem; margin-top:0.4rem;">
       Eligibility:
-      <% if (internship.eligibility.branches && internship.eligibility.branches.length) { %>branches <%= internship.eligibility.branches.join(', ') %><% } %>
-      <% if (internship.eligibility.minCgpa) { %> · min CGPA <%= internship.eligibility.minCgpa %><% } %>
-      <% if (internship.eligibility.years && internship.eligibility.years.length) { %> · years <%= internship.eligibility.years.join(', ') %><% } %>
+      <% if (internship.eligibility.branches && internship.eligibility.branches.length) { %><%= internship.eligibility.branches.join(', ') %><% } %>
+      <% if (internship.eligibility.minCgpa) { %> &middot; min CGPA <%= internship.eligibility.minCgpa %><% } %>
+      <% if (internship.eligibility.years && internship.eligibility.years.length) { %> &middot; year <%= internship.eligibility.years.join(', ') %><% } %>
     </p>
   <% } %>
 
   <% if (typeof internship.matchScore === "number") { %>
-    <div class="card" style="background:#0b1220;">
-      <span class="match-score"><%= internship.matchScore %>% match</span>
-      <p>
-        <% (internship.matchedSkills || []).forEach(function (s) { %><span class="skill-tag matched"><%= s %></span><% }) %>
-        <% (internship.missingSkills || []).forEach(function (s) { %><span class="skill-tag missing"><%= s %></span><% }) %>
-      </p>
+    <div class="match-panel">
+      <div class="match-score-value"><%= internship.matchScore %>%</div>
+      <div class="match-score-label">match with your profile</div>
+      <div style="margin-top:0.75rem;">
+        <% (internship.matchedSkills || []).forEach(function (s) { %><span class="tag matched"><%= s %></span><% }) %>
+        <% (internship.missingSkills || []).forEach(function (s) { %><span class="tag missing"><%= s %></span><% }) %>
+      </div>
       <% if (internship.recommendedLearning && internship.recommendedLearning.length) { %>
-        <h4>Recommended learning for your skill gaps</h4>
-        <ul>
+        <h3 style="font-size:0.85rem; margin-top:1rem;">Close the gap</h3>
+        <ul style="margin:0; padding-left:1.1rem; font-size:0.85rem;">
           <% internship.recommendedLearning.forEach(function (rl) { %>
-            <li><strong><%= rl.skill %></strong>:
+            <li style="margin-bottom:0.3rem;"><strong><%= rl.skill %></strong> &mdash;
               <% rl.resources.forEach(function (r, idx) { %><a href="<%= r.url %>" target="_blank" rel="noopener"><%= r.title %></a><%= idx < rl.resources.length - 1 ? ', ' : '' %><% }) %>
             </li>
           <% }) %>
@@ -39,26 +49,28 @@
   <% } %>
 
   <% if (currentUser && currentUser.role === "user" && internship.status === "published") { %>
-    <div style="margin-top:1rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+    <div style="display:flex; gap:0.6rem; flex-wrap:wrap; margin-top:0.5rem;">
       <form method="POST" action="/internships/<%= internship._id %>/apply"><button type="submit">Apply</button></form>
       <form method="POST" action="/internships/<%= internship._id %>/save"><button class="secondary" type="submit">Save</button></form>
       <form method="POST" action="/internships/<%= internship._id %>/unsave"><button class="secondary" type="submit">Unsave</button></form>
     </div>
-    <details style="margin-top:1rem;">
-      <summary class="muted">Report this listing as suspicious</summary>
-      <form method="POST" action="/internships/<%= internship._id %>/report">
-        <label>Reason</label>
-        <select name="reason">
-          <option value="payment_request">Asks for payment / registration fee</option>
-          <option value="sensitive_info_request">Asks for bank details / Aadhaar / OTP upfront</option>
-          <option value="suspicious_contact">Only a personal WhatsApp/Telegram contact</option>
-          <option value="fake_company">Company doesn't seem to exist</option>
-          <option value="other">Other</option>
-        </select>
-        <label>Details (optional)</label>
-        <textarea name="description" rows="2"></textarea>
-        <button class="danger" type="submit">Submit report</button>
-      </form>
+    <details class="report-disclosure">
+      <summary>Report this listing as suspicious</summary>
+      <div class="panel">
+        <form method="POST" action="/internships/<%= internship._id %>/report">
+          <label>Reason</label>
+          <select name="reason">
+            <option value="payment_request">Asks for payment / registration fee</option>
+            <option value="sensitive_info_request">Asks for bank details / Aadhaar / OTP upfront</option>
+            <option value="suspicious_contact">Only a personal WhatsApp/Telegram contact</option>
+            <option value="fake_company">Company doesn't seem to exist</option>
+            <option value="other">Other</option>
+          </select>
+          <label>Details (optional)</label>
+          <textarea name="description" rows="2"></textarea>
+          <button class="danger" type="submit">Submit report</button>
+        </form>
+      </div>
     </details>
   <% } else if (!currentUser) { %>
     <p class="muted" style="margin-top:1rem;"><a href="/login">Log in</a> to see your match score and apply.</p>

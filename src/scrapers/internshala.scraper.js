@@ -6,10 +6,10 @@ const { extractSkillsFromText } = require("../services/normalizeSkill");
 const LISTING_PAGE_URL = "https://internshala.com/internships";
 const SOURCE_NAME = "internshala";
 
-// Internshala's markup changes periodically - these selectors are a best-effort
-// starting point and MUST be re-verified against the live page before relying on this
-// adapter for a real demo/grading run (Section 4: scraper design notes). Each listing
-// is parsed defensively so one malformed card doesn't abort the whole scrape.
+// Selectors verified against the live site's rendered DOM (search results + a detail
+// page) - see README for the re-verification note, since public site markup drifts
+// over time and these will eventually need a refresh too. Each listing is parsed
+// defensively so one malformed card doesn't abort the whole scrape.
 async function fetchListingPage() {
   const { data: html } = await axios.get(LISTING_PAGE_URL, {
     headers: { "User-Agent": "Mozilla/5.0 (compatible; InternshipPortalBot/1.0)" },
@@ -24,12 +24,17 @@ function parseStipend(text) {
   return match ? Number(match[0]) : undefined;
 }
 
+function cleanText(text) {
+  return (text || "").replace(/\s+/g, " ").trim();
+}
+
 function parseListingCard($, card) {
-  const title = $(card).find(".job-internship-name, .profile").first().text().trim();
-  const company = $(card).find(".company-name").first().text().trim();
-  const location = $(card).find(".locations, .location_link").first().text().trim() || "Not specified";
-  const stipendText = $(card).find(".stipend").first().text().trim();
-  const relativeUrl = $(card).find("a.job-title-href, a.view_detail_button").first().attr("href");
+  const titleEl = $(card).find(".job-internship-name a.job-title-href").first();
+  const title = cleanText(titleEl.text());
+  const company = cleanText($(card).find(".company-name").first().text());
+  const location = cleanText($(card).find(".locations").first().text()) || "Not specified";
+  const stipendText = cleanText($(card).find(".stipend").first().text());
+  const relativeUrl = titleEl.attr("href");
   const sourceUrl = relativeUrl ? new URL(relativeUrl, LISTING_PAGE_URL).toString() : undefined;
 
   if (!title || !company || !sourceUrl) return null; // skip cards we couldn't confidently parse
@@ -44,16 +49,25 @@ async function fetchListingDetail(sourceUrl) {
   });
   const $ = cheerio.load(html);
 
-  const description = $(".internship_details, .text-container").first().text().trim();
-  const deadlineText = $(".apply_by, .other_detail_item:contains('Apply By')").first().text().trim();
+  const description = cleanText($(".internship_details").first().text());
+  const deadlineText = cleanText($(".other_detail_item.apply_by .item_body").first().text());
 
   return { description, deadlineText };
 }
 
 function parseDeadline(deadlineText) {
   if (!deadlineText) return null;
-  const parsed = new Date(deadlineText.replace(/apply by/i, "").trim());
+  // Internshala renders e.g. "24 Oct' 26" - normalize the stray apostrophe before Date().
+  const parsed = new Date(deadlineText.replace("'", ""));
   return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+// Every scraped listing's description ends with a link back to the original posting
+// (never just a bare "sourceUrl" field students have to know to look for) so a student
+// reading it in our UI can always verify/apply on the original site.
+function withSourceLink(description, sourceUrl) {
+  const base = description || "See the original posting for full details.";
+  return `${base}\n\nOriginal posting: ${sourceUrl}`;
 }
 
 // Returns an array of normalizeListing()-shaped objects, ready for ingestListing.
@@ -61,9 +75,7 @@ async function scrapeInternshala({ maxListings = 20 } = {}) {
   const html = await fetchListingPage();
   const $ = cheerio.load(html);
 
-  const cards = $(".individual_internship, .internship_meta")
-    .toArray()
-    .slice(0, maxListings);
+  const cards = $(".individual_internship").toArray().slice(0, maxListings);
 
   const results = [];
   for (const card of cards) {
@@ -81,7 +93,7 @@ async function scrapeInternshala({ maxListings = 20 } = {}) {
         normalizeListing({
           title: parsed.title,
           company: parsed.company,
-          description: description || `${parsed.title} at ${parsed.company}`,
+          description: withSourceLink(description, parsed.sourceUrl),
           location: parsed.location,
           deadline,
           stipend: parseStipend(parsed.stipendText),

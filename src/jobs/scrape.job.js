@@ -1,12 +1,13 @@
 const cron = require("node-cron");
 const { scrapeInternshala } = require("../scrapers/internshala.scraper");
+const { scrapeUnstop } = require("../scrapers/unstop.scraper");
 const { ingestScrapedListing } = require("../services/ingestListing");
 const { scrapeCron } = require("../config/env");
 
 // One adapter per source (Section 4) - add new sources here without touching
 // ingestListing/trustScore. LinkedIn is deliberately not in this list (ToS risk,
 // Section 4); it's admin-manual-entry only.
-const SOURCES = [scrapeInternshala];
+const SOURCES = [scrapeInternshala, scrapeUnstop];
 
 async function runScrapeJob() {
   console.log("[scrape.job] starting scrape run");

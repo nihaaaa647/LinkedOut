@@ -1,25 +1,30 @@
 <%- include('../partials/header') %>
 
-<h2>My Applications</h2>
+<div class="page-header">
+  <h1>My applications</h1>
+  <p class="subtitle">Track the status of everything you've applied to.</p>
+</div>
 
-<table>
-  <thead><tr><th>Internship</th><th>Company</th><th>Status</th><th>Applied</th><th></th></tr></thead>
-  <tbody>
-    <% applications.forEach(function (a) { %>
-      <tr>
-        <td><% if (a.internshipId) { %><a href="/internships/<%= a.internshipId._id %>"><%= a.internshipId.title %></a><% } else { %>(listing removed)<% } %></td>
-        <td><%= a.internshipId ? a.internshipId.company : '' %></td>
-        <td><span class="badge <%= a.status.toLowerCase() %>"><%= a.status %></span></td>
-        <td class="muted"><%= new Date(a.appliedAt).toLocaleDateString() %></td>
-        <td>
-          <% if (['Applied', 'Shortlisted'].includes(a.status)) { %>
-            <form method="POST" action="/applications/<%= a._id %>/withdraw"><button class="secondary" type="submit">Withdraw</button></form>
-          <% } %>
-        </td>
-      </tr>
-    <% }) %>
-    <% if (applications.length === 0) { %><tr><td colspan="5" class="muted">No applications yet.</td></tr><% } %>
-  </tbody>
-</table>
+<div class="panel" style="padding:0.5rem 1.4rem 1rem;">
+  <table>
+    <thead><tr><th>Internship</th><th>Company</th><th>Status</th><th>Applied</th><th></th></tr></thead>
+    <tbody>
+      <% applications.forEach(function (a) { %>
+        <tr>
+          <td><% if (a.internshipId) { %><a href="/internships/<%= a.internshipId._id %>"><%= a.internshipId.title %></a><% } else { %><span class="muted">Listing removed</span><% } %></td>
+          <td class="muted"><%= a.internshipId ? a.internshipId.company : '—' %></td>
+          <td><span class="status <%= a.status.toLowerCase() %>"><%= a.status %></span></td>
+          <td class="muted"><%= new Date(a.appliedAt).toLocaleDateString() %></td>
+          <td>
+            <% if (['Applied', 'Shortlisted'].includes(a.status)) { %>
+              <form method="POST" action="/applications/<%= a._id %>/withdraw"><button class="text" type="submit">Withdraw</button></form>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% if (applications.length === 0) { %><div class="empty-state">No applications yet — browse internships to get started.</div><% } %>
+</div>
 
 <%- include('../partials/footer') %>

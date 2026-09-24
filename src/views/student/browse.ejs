@@ -1,37 +1,43 @@
 <%- include('../partials/header') %>
 
-<h2>Browse Internships</h2>
+<div class="page-header">
+  <h1>Browse internships</h1>
+  <p class="subtitle">Published, verified listings from company career pages and Internshala.</p>
+</div>
 
-<form method="GET" action="/internships" class="card">
-  <div class="grid cols-2">
-    <div>
-      <label>Location contains</label>
-      <input type="text" name="location" value="<%= query.location || '' %>" />
-    </div>
-    <div>
-      <label>Work mode</label>
-      <select name="workMode">
-        <option value="">Any</option>
-        <option value="remote" <%= query.workMode === 'remote' ? 'selected' : '' %>>Remote</option>
-        <option value="hybrid" <%= query.workMode === 'hybrid' ? 'selected' : '' %>>Hybrid</option>
-        <option value="onsite" <%= query.workMode === 'onsite' ? 'selected' : '' %>>Onsite</option>
-      </select>
-    </div>
+<form method="GET" action="/internships" class="panel" style="display:flex; align-items:flex-end; gap:1rem; flex-wrap:wrap;">
+  <div style="flex:1; min-width:180px;">
+    <label>Location</label>
+    <input type="text" name="location" value="<%= query.location || '' %>" placeholder="e.g. Bengaluru, Remote" style="margin-bottom:0;" />
   </div>
-  <button type="submit">Filter</button>
+  <div style="min-width:160px;">
+    <label>Work mode</label>
+    <select name="workMode" style="margin-bottom:0;">
+      <option value="">Any</option>
+      <option value="remote" <%= query.workMode === 'remote' ? 'selected' : '' %>>Remote</option>
+      <option value="hybrid" <%= query.workMode === 'hybrid' ? 'selected' : '' %>>Hybrid</option>
+      <option value="onsite" <%= query.workMode === 'onsite' ? 'selected' : '' %>>Onsite</option>
+    </select>
+  </div>
+  <button type="submit">Apply filters</button>
 </form>
 
-<div class="grid">
+<div class="panel" style="padding-top:0.5rem; padding-bottom:0.5rem;">
   <% internships.forEach(function (i) { %>
-    <div class="card">
+    <div class="listing-row">
       <h3><a href="/internships/<%= i._id %>"><%= i.title %></a></h3>
-      <p class="muted"><%= i.company %> · <%= i.location %> <% if (i.workMode) { %>· <%= i.workMode %><% } %></p>
-      <p><%= i.description.slice(0, 160) %><%= i.description.length > 160 ? '…' : '' %></p>
-      <p class="muted">Deadline: <%= new Date(i.deadline).toLocaleDateString() %> <% if (i.stipend) { %>· Stipend: ₹<%= i.stipend %><% } %></p>
-      <% (i.requiredSkills || []).forEach(function (s) { %><span class="skill-tag"><%= s %></span><% }) %>
+      <div class="meta"><%= i.company %> &middot; <%= i.location %><% if (i.workMode) { %> &middot; <%= i.workMode %><% } %></div>
+      <p class="excerpt"><%= i.description.slice(0, 170) %><%= i.description.length > 170 ? '…' : '' %></p>
+      <div class="facts">
+        Deadline <%= new Date(i.deadline).toLocaleDateString() %>
+        <% if (i.stipend) { %> &middot; ₹<%= i.stipend.toLocaleString('en-IN') %>/mo<% } %>
+      </div>
+      <div style="margin-top:0.5rem;">
+        <% (i.requiredSkills || []).forEach(function (s) { %><span class="tag"><%= s %></span><% }) %>
+      </div>
     </div>
   <% }) %>
-  <% if (internships.length === 0) { %><p class="muted">No published internships match these filters.</p><% } %>
+  <% if (internships.length === 0) { %><div class="empty-state">No published internships match these filters.</div><% } %>
 </div>
 
 <%- include('../partials/footer') %>

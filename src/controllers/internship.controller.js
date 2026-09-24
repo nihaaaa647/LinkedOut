@@ -35,11 +35,15 @@ const getInternship = asyncHandler(async (req, res) => {
   if (!internship) throw new ApiError(404, "Internship not found");
 
   // Match score + recommended learning are computed only for authenticated users (Section 6).
+  // A valid JWT can still reference a user that no longer exists (deleted account, or a
+  // stale cookie from a different environment) - treat that as anonymous rather than 500.
   const payload = internship.toObject();
   if (req.user) {
     const user = await User.findById(req.user.id);
-    const match = await computeMatch(user, internship);
-    Object.assign(payload, match);
+    if (user) {
+      const match = await computeMatch(user, internship);
+      Object.assign(payload, match);
+    }
   }
 
   return ok(res, payload, "Internship detail");
