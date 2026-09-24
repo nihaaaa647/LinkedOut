@@ -1,7 +1,7 @@
 {
-  "name": "internship-opportunity-portal",
+  "name": "linkedout",
   "version": "1.0.0",
-  "description": "Secure role-based REST API for discovering, screening, and applying to internships.",
+  "description": "LINKEDOUT - a secure role-based internship portal for discovering, screening, and applying to internships.",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {

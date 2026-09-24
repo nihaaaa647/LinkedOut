@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title><%= typeof title !== "undefined" ? title + " · Internship Portal" : "Internship Portal" %></title>
+  <title><%= typeof title !== "undefined" ? title + " · LINKEDOUT" : "LINKEDOUT" %></title>
   <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
@@ -27,7 +27,7 @@
 <div class="app-shell">
 <% if (currentUser) { %>
   <aside class="sidebar">
-    <a class="brand" href="/internships">Internship Portal</a>
+    <a class="brand" href="/internships">LINKEDOUT</a>
     <nav>
       <% if (currentUser.role === "user") { %>
         <a class="nav-link <%= currentPath === '/internships' ? 'active' : '' %>" href="/internships">
@@ -83,7 +83,7 @@
   <div class="main-column">
     <% if (!currentUser) { %>
       <header class="topbar">
-        <a class="brand" href="/internships">Internship Portal</a>
+        <a class="brand" href="/internships">LINKEDOUT</a>
         <div class="topbar-actions">
           <div class="topbar-links">
             <a href="/internships">Browse</a>

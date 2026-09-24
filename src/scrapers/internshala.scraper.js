@@ -28,6 +28,13 @@ function cleanText(text) {
   return (text || "").replace(/\s+/g, " ").trim();
 }
 
+// Stored as a short excerpt, not the full posting - enough for match scoring and a
+// preview, while the "Original posting" link is where a student reads the full listing.
+const EXCERPT_LENGTH = 400;
+function excerpt(text) {
+  return text.length > EXCERPT_LENGTH ? `${text.slice(0, EXCERPT_LENGTH).trim()}…` : text;
+}
+
 function parseListingCard($, card) {
   const titleEl = $(card).find(".job-internship-name a.job-title-href").first();
   const title = cleanText(titleEl.text());
@@ -49,7 +56,7 @@ async function fetchListingDetail(sourceUrl) {
   });
   const $ = cheerio.load(html);
 
-  const description = cleanText($(".internship_details").first().text());
+  const description = excerpt(cleanText($(".internship_details").first().text()));
   const deadlineText = cleanText($(".other_detail_item.apply_by .item_body").first().text());
 
   return { description, deadlineText };

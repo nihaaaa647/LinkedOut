@@ -65,7 +65,17 @@ async function fetchListingDetail(page, sourceUrl) {
   await page.waitForSelector("main", { timeout: 15000 }).catch(() => {});
 
   return page.evaluate(() => {
-    const title = document.title.replace(/\s*\|\s*Unstop\s*$/i, "").trim();
+    // document.title follows "<Job Title> [in <City>] at <Company>[ | <suffix>]" - the
+    // suffix varies ("| Unstop", "| Remote", ...), so strip any number of trailing
+    // "| ..." segments rather than hardcoding one exact suffix string.
+    let rawTitle = document.title;
+    while (/\s*\|[^|]*$/.test(rawTitle)) {
+      rawTitle = rawTitle.replace(/\s*\|[^|]*$/, "");
+    }
+    const atIndex = rawTitle.lastIndexOf(" at ");
+    const title = (atIndex >= 0 ? rawTitle.slice(0, atIndex) : rawTitle).trim();
+    const company = atIndex >= 0 ? rawTitle.slice(atIndex + 4).trim() || null : null;
+
     const mainText = (document.querySelector("main") || document.body).innerText;
 
     const locationMatch = mainText.match(/Location\s*\n?\s*([^\n]+)/i);
@@ -74,17 +84,24 @@ async function fetchListingDetail(page, sourceUrl) {
     const workModeMatch = mainText.match(/\b(Work from Home|In Office|Hybrid)\b/i);
     const workMode = workModeMatch ? workModeMatch[1].toLowerCase() : null;
 
-    // "About the Company" / "Details" section down to the disclaimer footer that appears
-    // on every Unstop listing page - a stable enough pair of anchors to isolate the
-    // actual posting content from surrounding nav/footer chrome.
-    const detailsStart = mainText.indexOf("Details");
+    // "Details" appears twice: once as a tab-bar label near the very top of the page,
+    // and again as the actual section heading right before the posting content - so the
+    // LAST "Details" before the disclaimer footer (present on every listing page) is the
+    // real content start, not the first (tab-bar) occurrence.
     const disclaimerStart = mainText.indexOf("If an employer asks you to pay");
-    const description =
-      detailsStart >= 0 && disclaimerStart > detailsStart
-        ? mainText.slice(detailsStart + "Details".length, disclaimerStart).trim()
-        : mainText.slice(0, 1500).trim();
+    const detailsStart = disclaimerStart >= 0 ? mainText.lastIndexOf("Details", disclaimerStart) : mainText.lastIndexOf("Details");
+    const fullText =
+      detailsStart >= 0 && (disclaimerStart < 0 || disclaimerStart > detailsStart)
+        ? mainText.slice(detailsStart + "Details".length, disclaimerStart >= 0 ? disclaimerStart : undefined).trim()
+        : mainText.slice(0, 800).trim();
 
-    return { title, location, workMode, description: description.slice(0, 2000) };
+    // Stored as a short excerpt, not the full posting - enough for match scoring and a
+    // preview, while the "Original posting" link (added by the caller) is where a
+    // student reads the complete listing on Unstop itself.
+    const EXCERPT_LENGTH = 400;
+    const description = fullText.length > EXCERPT_LENGTH ? `${fullText.slice(0, EXCERPT_LENGTH).trim()}…` : fullText;
+
+    return { title, company, location, workMode, description };
   });
 }
 
@@ -99,8 +116,8 @@ async function scrapeUnstop({ maxListings = 20 } = {}) {
     for (const card of cards) {
       try {
         const sourceUrl = new URL(card.href, LISTING_PAGE_URL).toString();
-        const { title, location, workMode, description } = await fetchListingDetail(detailPage, sourceUrl);
-        if (!title) continue;
+        const { title, company, location, workMode, description } = await fetchListingDetail(detailPage, sourceUrl);
+        if (!title || !company) continue; // couldn't confidently parse the title/company split
 
         const daysLeft = card.daysLeft ?? 14; // conservative fallback for rolling postings with no visible countdown
         const deadline = new Date(Date.now() + daysLeft * 24 * 60 * 60 * 1000);
@@ -109,7 +126,7 @@ async function scrapeUnstop({ maxListings = 20 } = {}) {
         results.push(
           normalizeListing({
             title,
-            company: "See original posting", // Unstop's title/company aren't cleanly split by a stable selector; corrected on admin review
+            company,
             description: `${description}\n\nOriginal posting: ${sourceUrl}`,
             location: location || "Not specified",
             deadline,
